@@ -43,7 +43,7 @@ with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expand
 # --- 1. DATOS DE ENTRADA ---
 st.sidebar.header("Datos de Entrada")
 
-num_vars = st.sidebar.number_input("Número de variables", min_value=1, max_value=10, value=2, step=1)
+num_vars = st.sidebar.number_input("Número de variables", min_value=1, max_value=50, value=2, step=1)
 metodo = st.sidebar.selectbox("Método de optimización", ["Gradiente", "Gradiente Conjugado", "Newton"])
 func_str = st.sidebar.text_input("Función objetivo", "x1**2 + x2**2")
 
