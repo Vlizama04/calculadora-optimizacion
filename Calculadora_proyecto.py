@@ -16,7 +16,8 @@ with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expand
     * **Potencias:** Puedes usar `^` o `**` (Ejemplo: `x1^2` o `x1**2`).
     * **Multiplicación:** Usa explícitamente el asterisco `*` (Ejemplo: `2*x1`, **no** `2x1`).
     * **Exponencial (Euler):** Para $e^{x_1}$, escribe `exp(x1)` o `e^(x1)`.
-    * **Trigonometría y otras:** Puedes usar `sin(x1)`, `cos(x1)`, `log(x1)`.
+    * **Trigonometría y otras:** Puedes usar `sin(x1)`, `cos(x1)`.
+    * **Logaritmos:** Usa `log(x1)` para logaritmo base 10. Para otras bases, usa `log(x1, c)` donde `c` es la base (Ejemplo: `log(x1, 2)` para log base 2, `log(x1, e)` para logaritmo natural). También puedes escribir directamente `ln(x1)` para el logaritmo natural.
 
     *Ejemplo de función compleja válida de 2 variables: `(x1 - 1)^2 + exp(x2^2)`*
 
@@ -62,7 +63,8 @@ mostrar_tabla = st.sidebar.checkbox("Mostrar tabla de iteraciones", value=False)
 try:
     func_str_procesada = func_str.replace('^', '**')
     vars_simbolicas = sp.symbols(f'x1:{num_vars + 1}')
-    f_simbolica = sp.sympify(func_str_procesada, locals={'e': sp.E})
+    def log_flexible(x, base=10): return sp.log(x, base)
+    f_simbolica = sp.sympify(func_str_procesada, locals={'e': sp.E, 'ln': sp.log, 'log': log_flexible})
 
     gradiente_simbolico = [sp.diff(f_simbolica, var) for var in vars_simbolicas]
     hessiano_simbolico = [[sp.diff(g, var) for var in vars_simbolicas] for g in gradiente_simbolico]
