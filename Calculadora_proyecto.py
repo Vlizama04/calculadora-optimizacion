@@ -169,13 +169,20 @@ if st.button("Ejecutar Optimización"):
         )
 
     # --- 4. RESULTADOS ---
-    st.success("✅ Optimización finalizada exitosamente.")
+    no_convergio = error_actual > tol and len(avisos_wolfe) >= k // 2
+
+    if error_actual <= tol:
+        st.success("✅ Optimización finalizada exitosamente.")
+    elif no_convergio:
+        st.error("❌ No se encontró un mínimo. Es posible que la función no tenga mínimo, o que el punto de partida esté en una región problemática. Verifica que la función sea acotada inferiormente.")
+    else:
+        st.warning("⚠️ El método no convergió dentro del número máximo de iteraciones. Considera aumentar las iteraciones o ajustar la tolerancia.")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("Resultados Numéricos")
-        st.write("**Punto mínimo encontrado:**")
+        st.write("**Punto mínimo encontrado:**" if error_actual <= tol else "**Último punto visitado:**")
         st.code(np.round(x, 6))
         st.write(f"**Valor de la función objetivo:** `{round(f_eval(x), 6)}`")
         st.write(f"**Gradiente final (∇f(x)):** `{np.round(grad_eval(x), 6)}`")
