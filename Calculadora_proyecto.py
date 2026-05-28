@@ -139,22 +139,36 @@ CASOS = {
 # =============================================
 st.sidebar.header("⚙️ Datos de Entrada")
 
+# Session state para sincronizar casos de estudio con los widgets
+if "caso_anterior" not in st.session_state:
+    st.session_state.caso_anterior = "── Seleccionar caso ──"
+if "func_str" not in st.session_state:
+    st.session_state.func_str = "x1**2 + x2**2"
+if "x0_str" not in st.session_state:
+    st.session_state.x0_str = "2.0, 2.0"
+if "nvars" not in st.session_state:
+    st.session_state.nvars = 2
+
 caso_sel = st.sidebar.selectbox("📂 Cargar caso de estudio", list(CASOS.keys()))
 caso = CASOS[caso_sel]
+
+# Si cambió el caso, actualizar session_state
+if caso_sel != st.session_state.caso_anterior:
+    st.session_state.caso_anterior = caso_sel
+    if caso:
+        st.session_state.func_str = caso["func"]
+        st.session_state.x0_str   = caso["x0"]
+        st.session_state.nvars    = caso["nvars"]
 
 if caso:
     st.sidebar.info(caso["desc"])
 
-# Valores por defecto según caso seleccionado
-default_nvars = caso["nvars"] if caso else 2
-default_func  = caso["func"]  if caso else "x1**2 + x2**2"
-default_x0    = caso["x0"]    if caso else "2.0, 2.0"
-
 st.sidebar.markdown("---")
-num_vars = st.sidebar.number_input("Número de variables", min_value=1, max_value=50, value=default_nvars, step=1)
+num_vars = st.sidebar.number_input("Número de variables", min_value=1, max_value=50,
+                                    value=st.session_state.nvars, step=1)
 metodo   = st.sidebar.selectbox("Método de optimización", ["Gradiente", "Gradiente Conjugado", "Newton"])
-func_str = st.sidebar.text_input("Función objetivo", default_func)
-punto_partida_str = st.sidebar.text_input("Punto de partida (separado por comas)", default_x0)
+func_str = st.sidebar.text_input("Función objetivo", value=st.session_state.func_str)
+punto_partida_str = st.sidebar.text_input("Punto de partida (separado por comas)", value=st.session_state.x0_str)
 max_iter = st.sidebar.number_input("Número máximo de iteraciones", min_value=1, value=100)
 tol      = st.sidebar.number_input("Tolerancia de convergencia", min_value=1e-10, value=1e-5, format="%.5f", step=1e-5)
 
