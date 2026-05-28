@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import sympy as sp
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from scipy.optimize import line_search
 
@@ -113,8 +112,8 @@ CASOS = {
         "nvars": 2, "func": "x1**2 + x2**2", "x0": "2.0, 2.0"
     },
     "🟡 Rosenbrock (2 vars)": {
-        "desc": "Función clásica de prueba. Mínimo en (1,1), difícil de encontrar por el valle curvo.",
-        "nvars": 2, "func": "100*(x2 - x1**2)**2 + (1 - x1)**2", "x0": "-1.0, 1.0"
+        "desc": "Función clásica de prueba. Mínimo en (1,1), difícil de encontrar por el valle curvo. Se recomienda aumentar el número de iteraciones a 500 para ver convergencia completa.",
+        "nvars": 2, "func": "100*(x2 - x1**2)**2 + (1 - x1)**2", "x0": "-2.0, 2.0"
     },
     "🔵 Himmelblau (2 vars)": {
         "desc": "Función con múltiples mínimos locales. Un mínimo en (3, 2).",
@@ -196,8 +195,18 @@ try:
     grad_num = sp.lambdify(vars_simbolicas, gradiente_simbolico, 'numpy')
     hess_num = sp.lambdify(vars_simbolicas, hessiano_simbolico, 'numpy')
 
-    def f_eval(x):    return float(f_num(*x))
-    def grad_eval(x): return np.array(grad_num(*x), dtype=float).flatten()
+    def f_eval(x):
+        val = float(f_num(*x))
+        if not np.isfinite(val):
+            raise ValueError(f"f(x) no es finito en x={x}: {val}")
+        return val
+
+    def grad_eval(x):
+        g = np.array(grad_num(*x), dtype=float).flatten()
+        if not np.all(np.isfinite(g)):
+            raise ValueError(f"Gradiente no finito en x={x}: {g}")
+        return g
+
     def hess_eval(x): return np.array(hess_num(*x), dtype=float)
 
     x0 = np.array([float(v.strip()) for v in punto_partida_str.split(',')])
@@ -246,15 +255,24 @@ def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, t
             except np.linalg.LinAlgError:
                 pk = -gk
 
-        alpha, *_ = line_search(f_eval, grad_eval, x, pk, gfk=gk, old_fval=f_eval(x), c1=c1, c2=c2)
+        fval_actual = f_eval(x)
+        alpha, *_ = line_search(f_eval, grad_eval, x, pk, gfk=gk, old_fval=fval_actual, c1=c1, c2=c2)
         if alpha is None:
             alpha = 1e-4
             avisos_wolfe.append(k + 1)
 
         historial_alpha.append(alpha)
-        x = x + alpha * pk
-        historial_error.append(np.linalg.norm(grad_eval(x)))
-        historial_f.append(f_eval(x))
+        x_nuevo = x + alpha * pk
+        try:
+            error_nuevo = np.linalg.norm(grad_eval(x_nuevo))
+            f_nuevo     = f_eval(x_nuevo)
+        except ValueError:
+            # Si el nuevo punto da NaN/inf, detener el loop
+            criterio_parada = "Divergencia detectada: la función no es finita en el nuevo punto"
+            break
+        x = x_nuevo
+        historial_error.append(error_nuevo)
+        historial_f.append(f_nuevo)
         historial_x.append(x.copy())
         k += 1
 
@@ -271,9 +289,7 @@ def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, t
 # =============================================
 # BOTÓN Y EJECUCIÓN
 # =============================================
-col_btn1, col_btn2 = st.columns([1, 1])
-with col_btn1:
-    ejecutar = st.button("▶️ Ejecutar Optimización")
+ejecutar = st.button("▶️ Ejecutar Optimización")
 
 if ejecutar:
 
@@ -357,7 +373,7 @@ if ejecutar:
                 f"Se usó α = 1e-4 como respaldo."
             )
 
-        no_convergio = error_actual > tol and len(res["avisos_wolfe"]) >= k // 2
+        no_convergio = error_actual > tol and k > 0 and len(res["avisos_wolfe"]) >= k // 2
         if error_actual <= tol:
             st.success("✅ Optimización finalizada exitosamente.")
         elif no_convergio:
@@ -408,7 +424,7 @@ if ejecutar:
         if num_vars == 2 and len(res["historial_x"]) > 1:
             st.subheader("🌐 Superficie 3D Interactiva")
             tray = np.array(res["historial_x"])
-            margen = max(3.0, np.max(np.abs(tray - x)) * 1.5)
+            margen = min(max(3.0, np.max(np.abs(tray - x)) * 1.5), 20.0)
 
             x1_r = np.linspace(x[0] - margen, x[0] + margen, 120)
             x2_r = np.linspace(x[1] - margen, x[1] + margen, 120)
