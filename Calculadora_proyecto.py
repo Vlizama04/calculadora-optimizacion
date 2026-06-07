@@ -3,35 +3,43 @@ import numpy as np
 import sympy as sp
 import plotly.graph_objects as go
 from scipy.optimize import line_search
+import io
+import csv
 
 st.set_page_config(page_title="Calculadora de Optimización", layout="wide", page_icon="📉")
 
-# --- CSS PERSONALIZADO ---
 st.markdown("""
 <style>
-    /* Fondo general y tipografía */
     [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-        color: #e0e0e0;
+        background: linear-gradient(135deg, #1e2a2e 0%, #223030 50%, #1e2828 100%);
+        color: #ffffff;
+    }
+    [data-testid="stAppViewContainer"] p,
+    [data-testid="stAppViewContainer"] li,
+    [data-testid="stAppViewContainer"] label,
+    [data-testid="stAppViewContainer"] span {
+        color: #ffffff !important;
     }
     [data-testid="stSidebar"] {
-        background: rgba(255,255,255,0.04);
-        border-right: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+        border-right: 1px solid rgba(255,255,255,0.12);
     }
-    /* Título principal */
-    h1 { 
-        background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] span {
+        color: #ffffff !important;
+    }
+    h1 {
+        background: linear-gradient(90deg, #6dd5ed, #56c596);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-size: 2.4rem !important;
         font-weight: 800 !important;
     }
-    /* Subheaders */
-    h2, h3 { color: #00d4ff !important; }
-    /* Botones */
+    h2, h3 { color: #6dd5ed !important; }
     .stButton > button {
-        background: linear-gradient(90deg, #00d4ff, #7b2ff7);
-        color: white;
+        background: linear-gradient(90deg, #6dd5ed, #56c596);
+        color: #1a2a2a;
         border: none;
         border-radius: 8px;
         font-weight: 700;
@@ -40,27 +48,21 @@ st.markdown("""
         transition: opacity 0.2s;
     }
     .stButton > button:hover { opacity: 0.85; }
-    /* Métricas */
     [data-testid="metric-container"] {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(0,212,255,0.2);
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(109,213,237,0.35);
         border-radius: 10px;
         padding: 0.8rem 1rem;
     }
-    /* Expander */
     [data-testid="stExpander"] {
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
         border-radius: 10px;
     }
-    /* Tabs */
-    .stTabs [data-baseweb="tab"] {
-        color: #aaa;
-        font-weight: 600;
-    }
+    .stTabs [data-baseweb="tab"] { color: #ffffff; font-weight: 600; }
     .stTabs [aria-selected="true"] {
-        color: #00d4ff !important;
-        border-bottom: 2px solid #00d4ff;
+        color: #6dd5ed !important;
+        border-bottom: 2px solid #6dd5ed;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -68,7 +70,6 @@ st.markdown("""
 st.title("📉 Calculadora de Optimización No Lineal")
 st.caption("Métodos de gradiente, gradiente conjugado y Newton con condiciones de Wolfe")
 
-# --- GUÍA DE USO ---
 with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expandir/contraer)", expanded=False):
     st.markdown("""
     **Sintaxis obligatoria para la Función Objetivo:**
@@ -95,16 +96,13 @@ with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expand
     * Si la búsqueda de línea no encuentra un paso válido, se usa un paso fijo pequeño de respaldo (`α = 1e-4`) y se notifica al usuario.
 
     ---
-    **Gráficos disponibles:**
-    * **Convergencia:** Muestra la norma del gradiente por iteración en escala logarítmica.
-    * **Superficie 3D interactiva** *(solo para funciones de 2 variables):* Muestra la superficie de la función con la trayectoria del algoritmo. Puedes rotar, hacer zoom e interactuar con el gráfico.
-    * **Carrera de algoritmos:** Ejecuta los 3 métodos simultáneamente y compara su convergencia en un solo gráfico.
-    * **Tabla de iteraciones:** Detalla el valor de `f(x)`, la norma del gradiente y el paso `α` en cada iteración.
+    **Gráficos y funciones disponibles:**
+    * **Convergencia:** Norma del gradiente por iteración en escala logarítmica.
+    * **Superficie 3D interactiva** *(solo funciones de 2 variables, modo normal):* Superficie de la función con la trayectoria del algoritmo. Puedes rotar, hacer zoom e interactuar con el gráfico.
+    * **Carrera de algoritmos:** Ejecuta los 3 métodos simultáneamente y compara su convergencia. Incluye ranking automático y análisis del resultado.
+    * **Tabla de iteraciones:** Valor de `f(x)`, norma del gradiente y paso `α` en cada iteración, con descarga en CSV.
     """)
 
-# =============================================
-# CASOS DE ESTUDIO PREDISEÑADOS
-# =============================================
 CASOS = {
     "── Seleccionar caso ──": None,
     "🟢 Cuadrática simple (2 vars)": {
@@ -133,12 +131,10 @@ CASOS = {
     },
 }
 
-# =============================================
-# SIDEBAR
-# =============================================
+# --- SIDEBAR ---
 st.sidebar.header("⚙️ Datos de Entrada")
 
-# Session state para sincronizar casos de estudio con los widgets
+# Session state para sincronizar casos con los widgets
 if "caso_anterior" not in st.session_state:
     st.session_state.caso_anterior = "── Seleccionar caso ──"
 if "func_str" not in st.session_state:
@@ -151,7 +147,6 @@ if "nvars" not in st.session_state:
 caso_sel = st.sidebar.selectbox("📂 Cargar caso de estudio", list(CASOS.keys()))
 caso = CASOS[caso_sel]
 
-# Si cambió el caso, actualizar session_state
 if caso_sel != st.session_state.caso_anterior:
     st.session_state.caso_anterior = caso_sel
     if caso:
@@ -176,20 +171,18 @@ c1 = st.sidebar.number_input("c1 (Suficiente descenso)", min_value=0.0001, max_v
 c2 = st.sidebar.number_input("c2 (Curvatura)", min_value=c1, max_value=0.9999, value=0.9, format="%.4f", step=0.1000)
 
 st.sidebar.markdown("---")
-mostrar_tabla   = st.sidebar.checkbox("Mostrar tabla de iteraciones", value=False)
-modo_carrera    = st.sidebar.checkbox("🏁 Carrera de algoritmos (comparar los 3 métodos)", value=False)
+mostrar_tabla = st.sidebar.checkbox("Mostrar tabla de iteraciones", value=False)
+modo_carrera  = st.sidebar.checkbox("🏁 Carrera de algoritmos (comparar los 3 métodos)", value=False)
 
-# =============================================
-# PROCESAMIENTO MATEMÁTICO
-# =============================================
+# --- PROCESAMIENTO MATEMÁTICO ---
 try:
     func_str_procesada = func_str.replace('^', '**')
     vars_simbolicas = sp.symbols(f'x1:{num_vars + 1}')
     def log_flexible(x, base=10): return sp.log(x, base)
     f_simbolica = sp.sympify(func_str_procesada, locals={'e': sp.E, 'ln': sp.log, 'log': log_flexible})
 
-    gradiente_simbolico  = [sp.diff(f_simbolica, var) for var in vars_simbolicas]
-    hessiano_simbolico   = [[sp.diff(g, var) for var in vars_simbolicas] for g in gradiente_simbolico]
+    gradiente_simbolico = [sp.diff(f_simbolica, var) for var in vars_simbolicas]
+    hessiano_simbolico  = [[sp.diff(g, var) for var in vars_simbolicas] for g in gradiente_simbolico]
 
     f_num    = sp.lambdify(vars_simbolicas, f_simbolica, 'numpy')
     grad_num = sp.lambdify(vars_simbolicas, gradiente_simbolico, 'numpy')
@@ -207,7 +200,8 @@ try:
             raise ValueError(f"Gradiente no finito en x={x}: {g}")
         return g
 
-    def hess_eval(x): return np.array(hess_num(*x), dtype=float)
+    def hess_eval(x):
+        return np.array(hess_num(*x), dtype=float)
 
     x0 = np.array([float(v.strip()) for v in punto_partida_str.split(',')])
     if len(x0) != num_vars:
@@ -218,9 +212,7 @@ except Exception as e:
     st.error(f"⚠️ Error en la sintaxis matemática. Por favor, revisa la guía de uso. Detalle técnico: {e}")
     st.stop()
 
-# =============================================
-# FUNCIÓN DE OPTIMIZACIÓN REUTILIZABLE
-# =============================================
+# --- ALGORITMO DE OPTIMIZACIÓN ---
 def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, tol, c1, c2, num_vars):
     x = x0.copy()
     historial_error = [np.linalg.norm(grad_eval(x))]
@@ -237,7 +229,9 @@ def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, t
 
         if metodo_nombre == "Gradiente":
             pk = -gk
+
         elif metodo_nombre == "Gradiente Conjugado":
+            # Fletcher-Reeves con reinicio cada n iteraciones
             if k == 0 or k % num_vars == 0:
                 pk = -gk
             else:
@@ -246,10 +240,12 @@ def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, t
                 pk    = -gk + beta * p_previo
             p_previo    = pk.copy()
             grad_previo = gk.copy()
+
         elif metodo_nombre == "Newton":
             Hk = hess_eval(x)
             try:
                 pk = np.linalg.solve(Hk, -gk)
+                # Si no es dirección de descenso, usar gradiente negativo
                 if np.dot(pk, gk) >= 0:
                     pk = -gk
             except np.linalg.LinAlgError:
@@ -267,9 +263,9 @@ def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, t
             error_nuevo = np.linalg.norm(grad_eval(x_nuevo))
             f_nuevo     = f_eval(x_nuevo)
         except ValueError:
-            # Si el nuevo punto da NaN/inf, detener el loop
             criterio_parada = "Divergencia detectada: la función no es finita en el nuevo punto"
             break
+
         x = x_nuevo
         historial_error.append(error_nuevo)
         historial_f.append(f_nuevo)
@@ -286,28 +282,126 @@ def ejecutar_metodo(metodo_nombre, x0, f_eval, grad_eval, hess_eval, max_iter, t
         "avisos_wolfe": avisos_wolfe, "criterio_parada": criterio_parada
     }
 
-# =============================================
-# BOTÓN Y EJECUCIÓN
-# =============================================
+
+def generar_csv(res, k):
+    """Genera un CSV con el historial de iteraciones."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Iteracion", "f(x)", "||grad_f(x)||", "alpha"])
+    for i in range(k):
+        writer.writerow([
+            i + 1,
+            round(res["historial_f"][i + 1], 8),
+            f"{res['historial_error'][i + 1]:.6e}",
+            f"{res['historial_alpha'][i]:.6e}",
+        ])
+    return output.getvalue().encode("utf-8")
+
+
+def grafico_3d(res, x0, x, f_eval):
+    """Genera y muestra la superficie 3D con la trayectoria del método."""
+    tray   = np.array(res["historial_x"])
+    margen = min(max(3.0, np.max(np.abs(tray - x)) * 1.5), 20.0)
+
+    x1_r = np.linspace(x[0] - margen, x[0] + margen, 120)
+    x2_r = np.linspace(x[1] - margen, x[1] + margen, 120)
+    X1, X2 = np.meshgrid(x1_r, x2_r)
+
+    try:
+        Z      = np.vectorize(lambda a, b: f_eval([a, b]))(X1, X2)
+        z_tray = np.array([f_eval(p) for p in tray])
+
+        fig3d = go.Figure()
+        fig3d.add_trace(go.Surface(
+            x=X1, y=X2, z=Z, colorscale="Viridis", opacity=0.85,
+            showscale=True,
+            contours=dict(z=dict(show=True, usecolormap=True, highlightcolor="white", project_z=True))
+        ))
+        fig3d.add_trace(go.Scatter3d(
+            x=tray[:, 0], y=tray[:, 1], z=z_tray,
+            mode="lines+markers", line=dict(color="white", width=4),
+            marker=dict(size=3, color="white"), name="Trayectoria"
+        ))
+        fig3d.add_trace(go.Scatter3d(
+            x=[x0[0]], y=[x0[1]], z=[f_eval(x0)],
+            mode="markers", marker=dict(size=10, color="lime"), name="Inicio"
+        ))
+        fig3d.add_trace(go.Scatter3d(
+            x=[x[0]], y=[x[1]], z=[f_eval(x)],
+            mode="markers", marker=dict(size=10, color="red", symbol="diamond"), name="Mínimo"
+        ))
+        fig3d.update_layout(
+            scene=dict(xaxis_title="x1", yaxis_title="x2", zaxis_title="f(x)", bgcolor="rgba(0,0,0,0)"),
+            template="plotly_dark", height=550, legend=dict(bgcolor="rgba(0,0,0,0.4)")
+        )
+        st.plotly_chart(fig3d, use_container_width=True)
+        st.caption("💡 Puedes rotar, hacer zoom y explorar la superficie con el mouse.")
+    except Exception:
+        st.info("No fue posible graficar la superficie 3D para esta función.")
+
+
+def ranking_carrera(resultados_carrera, f_eval):
+    """Genera tabla de ranking comparativo entre los 3 métodos."""
+    metodos = list(resultados_carrera.keys())
+
+    # Determinar ganador por iteraciones (entre los que convergieron)
+    convergidos = [m for m in metodos if resultados_carrera[m]["criterio_parada"] == "Tolerancia de convergencia alcanzada"]
+    if convergidos:
+        ganador_iter  = min(convergidos, key=lambda m: resultados_carrera[m]["k"])
+        ganador_error = min(convergidos, key=lambda m: resultados_carrera[m]["error"])
+    else:
+        ganador_iter = ganador_error = None
+
+    st.markdown("### 🏆 Ranking comparativo")
+    cols = st.columns(3)
+    for i, m in enumerate(metodos):
+        res     = resultados_carrera[m]
+        convergio = res["criterio_parada"] == "Tolerancia de convergencia alcanzada"
+        with cols[i]:
+            tags = []
+            if m == ganador_iter:  tags.append("🥇 Más rápido")
+            if m == ganador_error: tags.append("🎯 Mejor precisión")
+            if not convergio:      tags.append("⚠️ No convergió")
+
+            st.metric(label=m, value=f"{res['k']} iter.", delta=" | ".join(tags) if tags else "✅ Convergió")
+            st.caption(f"f(x*) = {round(f_eval(res['x']), 8)}")
+            st.caption(f"Error final = {res['error']:.2e}")
+
+    # Análisis textual automático
+    st.markdown("#### 📋 Análisis de resultados")
+    lineas = []
+    if ganador_iter:
+        lineas.append(f"- **{ganador_iter}** fue el método más rápido con {resultados_carrera[ganador_iter]['k']} iteraciones.")
+    if ganador_error and ganador_error != ganador_iter:
+        lineas.append(f"- **{ganador_error}** obtuvo el menor error final ({resultados_carrera[ganador_error]['error']:.2e}).")
+    no_conv = [m for m in metodos if m not in convergidos]
+    if no_conv:
+        lineas.append(f"- **{', '.join(no_conv)}** no alcanzó la tolerancia. Considera aumentar el número de iteraciones.")
+    if not lineas:
+        lineas.append("- Los 3 métodos convergieron. Compara las iteraciones y el error final para elegir el más eficiente.")
+    st.markdown("\n".join(lineas))
+
+
+# --- EJECUCIÓN ---
 ejecutar = st.button("▶️ Ejecutar Optimización")
 
 if ejecutar:
 
-    # ---- MODO CARRERA ----
+    # MODO CARRERA
     if modo_carrera:
         st.markdown("## 🏁 Carrera de Algoritmos")
         st.caption("Los 3 métodos corren sobre la misma función y punto de partida.")
 
         barra = st.progress(0, text="Ejecutando métodos...")
         metodos_carrera = ["Gradiente", "Gradiente Conjugado", "Newton"]
-        colores = {"Gradiente": "#00d4ff", "Gradiente Conjugado": "#f7b731", "Newton": "#7b2ff7"}
+        colores = {"Gradiente": "#6dd5ed", "Gradiente Conjugado": "#f7b731", "Newton": "#56c596"}
         resultados_carrera = {}
 
         for i, m in enumerate(metodos_carrera):
             resultados_carrera[m] = ejecutar_metodo(m, x0, f_eval, grad_eval, hess_eval, max_iter, tol, c1, c2, num_vars)
             barra.progress((i + 1) / 3, text=f"Completado: {m}")
 
-        # Gráfico de convergencia comparativo
+        # Gráfico comparativo de convergencia
         fig_carrera = go.Figure()
         for m, res in resultados_carrera.items():
             fig_carrera.add_trace(go.Scatter(
@@ -320,25 +414,13 @@ if ejecutar:
             ))
         fig_carrera.update_layout(
             title="Comparación de convergencia — Norma del Gradiente",
-            xaxis_title="Iteraciones",
-            yaxis_title="||∇f(x)||",
-            yaxis_type="log",
-            template="plotly_dark",
-            legend=dict(bgcolor="rgba(0,0,0,0.3)"),
-            height=420
+            xaxis_title="Iteraciones", yaxis_title="||∇f(x)||",
+            yaxis_type="log", template="plotly_dark",
+            legend=dict(bgcolor="rgba(0,0,0,0.3)"), height=420
         )
         st.plotly_chart(fig_carrera, use_container_width=True)
 
-        # Tabla comparativa de resultados
-        st.markdown("### Resumen comparativo")
-        cols = st.columns(3)
-        for i, (m, res) in enumerate(resultados_carrera.items()):
-            with cols[i]:
-                ganador = res["criterio_parada"] == "Tolerancia de convergencia alcanzada"
-                st.metric(label=m, value=f"{res['k']} iteraciones",
-                          delta="✅ Convergió" if ganador else "⚠️ No convergió")
-                st.caption(f"f(x*) = {round(f_eval(res['x']), 6)}")
-                st.caption(f"Error = {res['error']:.2e}")
+        ranking_carrera(resultados_carrera, f_eval)
 
         st.markdown("---")
         st.markdown("### Resultado individual por método")
@@ -356,8 +438,15 @@ if ejecutar:
                 with c2c:
                     if res["avisos_wolfe"]:
                         st.warning(f"Wolfe falló en {len(res['avisos_wolfe'])} iteraciones.")
+                    if mostrar_tabla and res["k"] > 0:
+                        st.download_button(
+                            label=f"⬇️ Descargar CSV — {m}",
+                            data=generar_csv(res, res["k"]),
+                            file_name=f"historial_{m.replace(' ', '_')}.csv",
+                            mime="text/csv"
+                        )
 
-    # ---- MODO NORMAL ----
+    # MODO NORMAL
     else:
         barra_progreso = st.progress(0, text="Ejecutando...")
         res = ejecutar_metodo(metodo, x0, f_eval, grad_eval, hess_eval, max_iter, tol, c1, c2, num_vars)
@@ -381,7 +470,6 @@ if ejecutar:
         else:
             st.warning("⚠️ No convergió dentro del máximo de iteraciones. Considera aumentar las iteraciones.")
 
-        # --- Métricas ---
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Iteraciones", k)
         m2.metric("f(x*)", round(f_eval(x), 6))
@@ -391,7 +479,6 @@ if ejecutar:
         st.markdown("---")
 
         col1, col2 = st.columns(2)
-
         with col1:
             st.subheader("Resultados Numéricos")
             st.write("**Punto mínimo encontrado:**" if error_actual <= tol else "**Último punto visitado:**")
@@ -406,74 +493,23 @@ if ejecutar:
                 x=list(range(len(res["historial_error"]))),
                 y=res["historial_error"],
                 mode="lines+markers",
-                line=dict(color="#00d4ff", width=2),
-                marker=dict(size=4),
-                name="||∇f(x)||"
+                line=dict(color="#6dd5ed", width=2),
+                marker=dict(size=4), name="||∇f(x)||"
             ))
             fig_conv.update_layout(
-                xaxis_title="Iteraciones",
-                yaxis_title="Error (Norma del Gradiente)",
-                yaxis_type="log",
-                template="plotly_dark",
-                height=350,
-                margin=dict(t=20)
+                xaxis_title="Iteraciones", yaxis_title="Error (Norma del Gradiente)",
+                yaxis_type="log", template="plotly_dark",
+                height=350, margin=dict(t=20)
             )
             st.plotly_chart(fig_conv, use_container_width=True)
 
-        # --- Superficie 3D interactiva ---
+        # Superficie 3D (solo modo normal, 2 variables)
         if num_vars == 2 and len(res["historial_x"]) > 1:
             st.subheader("🌐 Superficie 3D Interactiva")
-            tray = np.array(res["historial_x"])
-            margen = min(max(3.0, np.max(np.abs(tray - x)) * 1.5), 20.0)
+            grafico_3d(res, x0, x, f_eval)
 
-            x1_r = np.linspace(x[0] - margen, x[0] + margen, 120)
-            x2_r = np.linspace(x[1] - margen, x[1] + margen, 120)
-            X1, X2 = np.meshgrid(x1_r, x2_r)
-            try:
-                Z = np.vectorize(lambda a, b: f_eval([a, b]))(X1, X2)
-
-                z_tray = np.array([f_eval(p) for p in tray])
-
-                fig3d = go.Figure()
-                fig3d.add_trace(go.Surface(
-                    x=X1, y=X2, z=Z,
-                    colorscale="Viridis", opacity=0.85,
-                    showscale=True,
-                    contours=dict(z=dict(show=True, usecolormap=True, highlightcolor="white", project_z=True))
-                ))
-                fig3d.add_trace(go.Scatter3d(
-                    x=tray[:, 0], y=tray[:, 1], z=z_tray,
-                    mode="lines+markers",
-                    line=dict(color="white", width=4),
-                    marker=dict(size=3, color="white"),
-                    name="Trayectoria"
-                ))
-                fig3d.add_trace(go.Scatter3d(
-                    x=[x0[0]], y=[x0[1]], z=[f_eval(x0)],
-                    mode="markers", marker=dict(size=10, color="lime"),
-                    name="Inicio"
-                ))
-                fig3d.add_trace(go.Scatter3d(
-                    x=[x[0]], y=[x[1]], z=[f_eval(x)],
-                    mode="markers", marker=dict(size=10, color="red", symbol="diamond"),
-                    name="Mínimo"
-                ))
-                fig3d.update_layout(
-                    scene=dict(
-                        xaxis_title="x1", yaxis_title="x2", zaxis_title="f(x)",
-                        bgcolor="rgba(0,0,0,0)"
-                    ),
-                    template="plotly_dark",
-                    height=550,
-                    legend=dict(bgcolor="rgba(0,0,0,0.4)")
-                )
-                st.plotly_chart(fig3d, use_container_width=True)
-                st.caption("💡 Puedes rotar, hacer zoom y explorar la superficie con el mouse.")
-            except Exception:
-                st.info("No fue posible graficar la superficie 3D para esta función.")
-
-        # --- Tabla de iteraciones ---
-        if mostrar_tabla:
+        # Tabla de iteraciones con descarga CSV
+        if mostrar_tabla and k > 0:
             st.subheader("Tabla de iteraciones")
             tabla = {
                 "Iteración":  list(range(1, k + 1)),
@@ -482,3 +518,9 @@ if ejecutar:
                 "α (paso)":   [f"{v:.4e}" for v in res["historial_alpha"]],
             }
             st.dataframe(tabla, use_container_width=True)
+            st.download_button(
+                label="⬇️ Descargar tabla como CSV",
+                data=generar_csv(res, k),
+                file_name="historial_iteraciones.csv",
+                mime="text/csv"
+            )
