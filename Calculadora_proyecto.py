@@ -6,7 +6,7 @@ from scipy.optimize import line_search
 import io
 import csv
 
-st.set_page_config(page_title="Calculadora de Optimización", layout="wide", page_icon="📉")
+st.set_page_config(page_title="Calculadora de Optimización", layout="wide", page_icon="🎯")
 
 st.markdown("""
 <style>
@@ -67,7 +67,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("📉 Calculadora de Optimización No Lineal")
+st.title("🎯 Calculadora de Optimización No Lineal")
 st.caption("Métodos de gradiente, gradiente conjugado y Newton con condiciones de Wolfe")
 
 with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expandir/contraer)", expanded=False):
@@ -312,27 +312,36 @@ def grafico_3d(res, x0, x, f_eval):
         z_tray = np.array([f_eval(p) for p in tray])
 
         fig3d = go.Figure()
+        
+        # FIX 1: showscale=False elimina la barra de color lateral que causaba confusión
         fig3d.add_trace(go.Surface(
             x=X1, y=X2, z=Z, colorscale="Viridis", opacity=0.85,
-            showscale=True,
+            showscale=False,
             contours=dict(z=dict(show=True, usecolormap=True, highlightcolor="white", project_z=True))
         ))
+        
+        # FIX 2: Aumento del grosor de la línea y el tamaño del marcador para la trayectoria
         fig3d.add_trace(go.Scatter3d(
             x=tray[:, 0], y=tray[:, 1], z=z_tray,
-            mode="lines+markers", line=dict(color="white", width=4),
-            marker=dict(size=3, color="white"), name="Trayectoria"
+            mode="lines+markers", line=dict(color="white", width=5),
+            marker=dict(size=5, color="white"), name="Trayectoria"
         ))
+        
+        # FIX 3: Aumento significativo de los puntos de inicio y mínimo, y adición de borde (line)
         fig3d.add_trace(go.Scatter3d(
             x=[x0[0]], y=[x0[1]], z=[f_eval(x0)],
-            mode="markers", marker=dict(size=10, color="lime"), name="Inicio"
+            mode="markers", marker=dict(size=14, color="lime", line=dict(width=2, color="black")), name="Inicio"
         ))
         fig3d.add_trace(go.Scatter3d(
             x=[x[0]], y=[x[1]], z=[f_eval(x)],
-            mode="markers", marker=dict(size=10, color="red", symbol="diamond"), name="Mínimo"
+            mode="markers", marker=dict(size=16, color="red", symbol="diamond", line=dict(width=2, color="black")), name="Mínimo"
         ))
+        
+        # FIX 4: Moví la leyenda hacia la esquina superior izquierda (yanchor, xanchor) para separarla
         fig3d.update_layout(
             scene=dict(xaxis_title="x1", yaxis_title="x2", zaxis_title="f(x)", bgcolor="rgba(0,0,0,0)"),
-            template="plotly_dark", height=550, legend=dict(bgcolor="rgba(0,0,0,0.4)")
+            template="plotly_dark", height=600, 
+            legend=dict(bgcolor="rgba(0,0,0,0.6)", yanchor="top", y=0.95, xanchor="left", x=0.05)
         )
         st.plotly_chart(fig3d, use_container_width=True)
         st.caption("💡 Puedes rotar, hacer zoom y explorar la superficie con el mouse.")
@@ -383,7 +392,12 @@ def ranking_carrera(resultados_carrera, f_eval):
 
 
 # --- EJECUCIÓN ---
-ejecutar = st.button("▶️ Ejecutar Optimización")
+st.markdown("<br>", unsafe_allow_html=True) # Espacio visual para separar
+
+# FIX 5: Sistema de columnas de Streamlit para centrar y compactar el botón
+col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+with col_btn2:
+    ejecutar = st.button("▶️ Ejecutar Optimización", use_container_width=True)
 
 if ejecutar:
 
