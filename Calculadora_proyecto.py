@@ -2,14 +2,13 @@ import streamlit as st
 import numpy as np
 import sympy as sp
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from scipy.optimize import line_search
 import io
 import csv
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="OptiMat Chie | Calculadora Avanzada",
+    page_title="Calculadora de Optimización",
     layout="wide",
     page_icon="🎯",
     initial_sidebar_state="expanded"
@@ -18,22 +17,17 @@ st.set_page_config(
 # --- CSS PERSONALIZADO AVANZADO (Estética Refinada) ---
 st.markdown("""
 <style>
-    /* Importar tipografía moderna */
     @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
 
     html, body, [data-testid="stAppViewContainer"] {
         font-family: 'Inter', sans-serif;
-        background: #0a0e14; /* Fondo espacial profundo */
+        background: #0a0e14; 
         color: #f0f2f6;
     }
-
-    /* Estilo del Sidebar */
     [data-testid="stSidebar"] {
         background: #11161f;
         border-right: 1px solid #1e2530;
     }
-    
-    /* Titulos */
     h1 {
         font-family: 'Inter', sans-serif;
         background: linear-gradient(90deg, #00f2fe, #4facfe, #a951ed);
@@ -49,8 +43,6 @@ st.markdown("""
         font-weight: 700;
         letter-spacing: -0.5px;
     }
-
-    /* Contenedores de inputs en Sidebar (Efecto Tarjeta) */
     .stNumberInput label, .stTextInput label, .stSelectbox label {
         color: #8899ac !important;
         font-weight: 600;
@@ -60,8 +52,6 @@ st.markdown("""
         border-color: #1e2530;
         margin: 1.5rem 0;
     }
-
-    /* Botón Principal (Animación de Pulso) */
     .stButton > button {
         background: linear-gradient(90deg, #00f2fe, #4facfe);
         color: #06090f;
@@ -81,8 +71,6 @@ st.markdown("""
     .stButton > button:active {
         transform: translateY(1px);
     }
-
-    /* Tarjetas de Métricas (Profundidad y Color) */
     [data-testid="metric-container"] {
         background: #151b24;
         border: 1px solid #1e2530;
@@ -96,14 +84,10 @@ st.markdown("""
         font-family: 'Roboto Mono', monospace;
         font-size: 2.2rem !important;
     }
-
-    /* Tarjetas del Ranking (Ganador) */
     .winner-card {
         border: 2px solid #00f2fe !important;
         box-shadow: 0 0 20px rgba(0,242,254,0.3) !important;
     }
-
-    /* Expander y Tabs */
     [data-testid="stExpander"] {
         background: #11161f;
         border: 1px solid #1e2530;
@@ -114,8 +98,6 @@ st.markdown("""
         color: #00f2fe !important;
         border-bottom: 2px solid #00f2fe;
     }
-
-    /* Estilo del código */
     code {
         font-family: 'Roboto Mono', monospace;
         background: #1c232e !important;
@@ -127,13 +109,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HEADER PRINCIPAL ---
-cols_head = st.columns([0.1, 0.9])
-with cols_head[0]:
-    st.markdown("<h1 style='text-align: center; margin:0;'>🎯</h1>", unsafe_allow_html=True)
-with cols_head[1]:
-    st.title("OptiMat Chie")
-st.markdown("<p style='color:#8899ac; margin-left:1rem; margin-top:-1rem;'>Calculadora Avanzada de Optimización No Lineal</p>", unsafe_allow_html=True)
-
+st.title("🎯 Calculadora de Optimización No Lineal")
+st.caption("Métodos de gradiente, gradiente conjugado y Newton con condiciones de Wolfe")
 
 with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expandir/contraer)", expanded=False):
     st.markdown("""
@@ -218,7 +195,7 @@ metodo   = st.sidebar.selectbox("Método principal", ["Gradiente", "Gradiente Co
 max_iter = st.sidebar.number_input("Máximo iteraciones", min_value=1, value=100)
 tol      = st.sidebar.number_input("Tolerancia (||∇f||)", min_value=1e-10, value=1e-5, format="%.5f", step=1e-5)
 
-with st.sidebar.expander("🐺 Condiciones de Búsqueda de Wolfe", expanded=False):
+with st.sidebar.expander("Condiciones de Búsqueda de Wolfe", expanded=False):
     c1 = st.number_input("c1 (Descenso)", min_value=0.0001, max_value=0.9999, value=1e-4, format="%.4f")
     c2 = st.number_input("c2 (Curvatura)", min_value=c1, max_value=0.9999, value=0.9, format="%.4f")
 
@@ -371,7 +348,6 @@ if ejecutar:
         for i, m in enumerate(metodos_carrera):
             res = resultados[m]
             with cols_c[i]:
-                # CSS Dinámico para resaltar ganador
                 style_class = "winner-card" if m == ganador_vel else ""
                 st.markdown(f"<div class='{style_class}' style='padding:1px; border-radius:16px;'>", unsafe_allow_html=True)
                 
@@ -402,7 +378,7 @@ if ejecutar:
         with st.spinner(f"Ejecutando {metodo}..."):
             res = ejecutar_metodo(metodo, x0, f_eval, grad_eval, hess_eval, max_iter, tol, c1, c2, num_vars)
         
-        # MÉTRICAS DESTACADAS (Mejora Estética Principal)
+        # MÉTRICAS DESTACADAS
         st.markdown("### 📊 Resumen de Resultados")
         mcols = st.columns(4)
         mcols[0].metric("Iteraciones Realizadas", res["k"])
@@ -437,7 +413,7 @@ if ejecutar:
             fig_conv.update_layout(xaxis_title="Iteraciones", yaxis_title="Error (Norma Gradiente)", yaxis_type="log", template="plotly_dark", height=380, margin=dict(t=10, b=10))
             st.plotly_chart(fig_conv, use_container_width=True)
 
-        # Gráfico 3D Normal (Mejorado)
+        # Gráfico 3D Normal
         if num_vars == 2 and res["k"] > 0:
             st.markdown("---")
             st.subheader("🌐 Visualización 3D de la Trayectoria")
@@ -447,10 +423,8 @@ if ejecutar:
             distancias = np.linalg.norm(tray - x_final, axis=1)
             max_dist = np.max(distancias)
             
-            # Dinamismo del margen del gráfico
             margen = min(max(3.0, max_dist * 1.3), 15.0)
             
-            # Crear malla para superficie
             grid_res = 130
             x1_r = np.linspace(x_final[0] - margen, x_final[0] + margen, grid_res)
             x2_r = np.linspace(x_final[1] - margen, x_final[1] + margen, grid_res)
@@ -461,14 +435,8 @@ if ejecutar:
                 z_tray = np.array([f_eval(p) for p in tray])
 
                 fig3d = go.Figure()
-                
-                # Superficie (Viridis es genial para fondos oscuros)
                 fig3d.add_trace(go.Surface(x=X1, y=X2, z=Z, colorscale="Viridis", opacity=0.8, showscale=False, contours=dict(z=dict(show=True, usecolormap=True, project_z=True))))
-                
-                # Trayectoria (Línea blanca gruesa para contraste)
                 fig3d.add_trace(go.Scatter3d(x=tray[:, 0], y=tray[:, 1], z=z_tray, mode="lines+markers", line=dict(color="#ffffff", width=4), marker=dict(size=3, color="#ffffff"), name="Camino"))
-                
-                # Puntos Clave (Grandes y con bordes para profundidad)
                 fig3d.add_trace(go.Scatter3d(x=[x0[0]], y=[x0[1]], z=[f_eval(x0)], mode="markers", marker=dict(size=12, color="#00ff00", line=dict(width=2, color="#000000")), name="Inicio x₀"))
                 fig3d.add_trace(go.Scatter3d(x=[x_final[0]], y=[x_final[1]], z=[f_eval(x_final)], mode="markers", marker=dict(size=14, color="#ff0000", symbol="diamond", line=dict(width=2, color="#000000")), name="Mínimo x\*"))
                 
