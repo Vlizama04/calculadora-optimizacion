@@ -14,23 +14,35 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS PERSONALIZADO AVANZADO (Estética Refinada) ---
+# --- CSS PERSONALIZADO (Alto Contraste y Estética Refinada) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
 
     html, body, [data-testid="stAppViewContainer"] {
         font-family: 'Inter', sans-serif;
-        background: #0a0e14; 
-        color: #f0f2f6;
+        background: linear-gradient(135deg, #1e2a2e 0%, #223030 50%, #1e2828 100%);
+        color: #ffffff;
     }
+    
+    /* FORZAR TEXTO BLANCO PARA MÁXIMO CONTRASTE */
+    [data-testid="stAppViewContainer"] p,
+    [data-testid="stAppViewContainer"] li,
+    [data-testid="stAppViewContainer"] label,
+    [data-testid="stAppViewContainer"] span,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] span {
+        color: #ffffff !important;
+    }
+
     [data-testid="stSidebar"] {
-        background: #11161f;
-        border-right: 1px solid #1e2530;
+        background: rgba(255,255,255,0.05);
+        border-right: 1px solid rgba(255,255,255,0.12);
     }
     h1 {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(90deg, #00f2fe, #4facfe, #a951ed);
+        background: linear-gradient(90deg, #6dd5ed, #56c596);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-size: 3rem !important;
@@ -39,69 +51,57 @@ st.markdown("""
     }
     h2, h3 { 
         font-family: 'Inter', sans-serif;
-        color: #00f2fe !important; 
+        color: #6dd5ed !important; 
         font-weight: 700;
-        letter-spacing: -0.5px;
-    }
-    .stNumberInput label, .stTextInput label, .stSelectbox label {
-        color: #8899ac !important;
-        font-weight: 600;
-        font-size: 0.9rem;
     }
     div[data-testid="stMarkdownContainer"] hr {
-        border-color: #1e2530;
+        border-color: rgba(255,255,255,0.2);
         margin: 1.5rem 0;
     }
     .stButton > button {
-        background: linear-gradient(90deg, #00f2fe, #4facfe);
-        color: #06090f;
+        background: linear-gradient(90deg, #6dd5ed, #56c596);
+        color: #1a2a2a;
         border: none;
         border-radius: 12px;
         font-weight: 800;
         font-size: 1.1rem;
         padding: 0.8rem 2.5rem;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0,242,254,0.3);
     }
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,242,254,0.5);
         opacity: 0.95;
     }
-    .stButton > button:active {
-        transform: translateY(1px);
-    }
     [data-testid="metric-container"] {
-        background: #151b24;
-        border: 1px solid #1e2530;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(109,213,237,0.35);
         border-radius: 16px;
         padding: 1.5rem;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
-    [data-testid="stMetricLabel"] { color: #8899ac !important; }
+    /* Métricas en color cian claro para contraste */
     [data-testid="stMetricValue"] > div { 
-        color: #00f2fe !important; 
+        color: #6dd5ed !important; 
         font-family: 'Roboto Mono', monospace;
         font-size: 2.2rem !important;
     }
     .winner-card {
-        border: 2px solid #00f2fe !important;
-        box-shadow: 0 0 20px rgba(0,242,254,0.3) !important;
+        border: 2px solid #56c596 !important;
+        box-shadow: 0 0 15px rgba(86,197,150,0.3) !important;
     }
     [data-testid="stExpander"] {
-        background: #11161f;
-        border: 1px solid #1e2530;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
         border-radius: 12px;
     }
-    .stTabs [data-baseweb="tab"] { color: #8899ac; font-weight: 600; }
+    .stTabs [data-baseweb="tab"] { color: #e0e0e0; font-weight: 600; }
     .stTabs [aria-selected="true"] {
-        color: #00f2fe !important;
-        border-bottom: 2px solid #00f2fe;
+        color: #6dd5ed !important;
+        border-bottom: 2px solid #6dd5ed;
     }
     code {
         font-family: 'Roboto Mono', monospace;
-        background: #1c232e !important;
-        color: #ff9e7d !important;
+        background: rgba(255,255,255,0.1) !important;
+        color: #56c596 !important;
         padding: 0.2rem 0.4rem;
         border-radius: 4px;
     }
@@ -139,7 +139,7 @@ with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expand
     """)
 
 # =============================================
-# CASOS DE ESTUDIO (Datos Refinados)
+# CASOS DE ESTUDIO
 # =============================================
 CASOS = {
     "── Seleccionar caso de ejemplo ──": None,
@@ -166,13 +166,12 @@ CASOS = {
 }
 
 # =============================================
-# SIDEBAR (Organización Visual)
+# SIDEBAR
 # =============================================
 st.sidebar.markdown("### 📂 Biblioteca de Modelos")
 caso_sel = st.sidebar.selectbox("Cargar ejemplo prediseñado", list(CASOS.keys()))
 caso = CASOS[caso_sel]
 
-# State Management para sincronización
 if "func_str" not in st.session_state: st.session_state.func_str = "x1**2 + x2**2"
 if "x0_str" not in st.session_state: st.session_state.x0_str = "2.0, 2.0"
 if "nvars" not in st.session_state: st.session_state.nvars = 2
@@ -205,7 +204,7 @@ mostrar_tabla = st.sidebar.checkbox("Mostrar tabla de iteraciones", value=False)
 modo_carrera  = st.sidebar.checkbox("🏁 Modo Carrera (Comparar los 3 métodos)", value=False)
 
 # =============================================
-# PROCESAMIENTO MATEMÁTICO (Robusto)
+# PROCESAMIENTO MATEMÁTICO
 # =============================================
 try:
     func_str_procesada = func_str.replace('^', '**')
@@ -322,7 +321,7 @@ if ejecutar:
         st.markdown("## 🏁 Carrera de Algoritmos")
         barra = st.progress(0, text="Corriendo simulaciones...")
         metodos_carrera = ["Gradiente", "Gradiente Conjugado", "Newton"]
-        colores = {"Gradiente": "#00f2fe", "Gradiente Conjugado": "#f7b731", "Newton": "#a951ed"}
+        colores = {"Gradiente": "#6dd5ed", "Gradiente Conjugado": "#f7b731", "Newton": "#56c596"}
         resultados = {}
 
         for i, m in enumerate(metodos_carrera):
@@ -409,7 +408,7 @@ if ejecutar:
             # Gráfico Convergencia Normal
             st.subheader("📈 Curva de Convergencia")
             fig_conv = go.Figure()
-            fig_conv.add_trace(go.Scatter(x=list(range(len(res["historial_error"]))), y=res["historial_error"], mode="lines+markers", line=dict(color="#00f2fe", width=3), marker=dict(size=5), name="||∇f(x)||"))
+            fig_conv.add_trace(go.Scatter(x=list(range(len(res["historial_error"]))), y=res["historial_error"], mode="lines+markers", line=dict(color="#6dd5ed", width=3), marker=dict(size=5), name="||∇f(x)||"))
             fig_conv.update_layout(xaxis_title="Iteraciones", yaxis_title="Error (Norma Gradiente)", yaxis_type="log", template="plotly_dark", height=380, margin=dict(t=10, b=10))
             st.plotly_chart(fig_conv, use_container_width=True)
 
