@@ -105,10 +105,35 @@ st.caption("Métodos de gradiente, gradiente conjugado y Newton con condiciones 
 with st.expander("📖 Guía de uso y sintaxis matemática (Haz clic para expandir/contraer)", expanded=False):
     st.markdown("""
     **Sintaxis obligatoria para la Función Objetivo:**
-    * **Variables:** Utiliza siempre el formato `x1`, `x2`, `x3`, etc.
+    * **Variables:** Utiliza siempre el formato `x1`, `x2`, `x3`, etc. (No uses `x` o `y` de forma aislada).
     * **Potencias:** Puedes usar `^` o `**` (Ejemplo: `x1^2` o `x1**2`).
-    * **Multiplicación:** Usa explícitamente el asterisco `*` (Ejemplo: `2*x1`).
-    * **Exponencial y Logaritmos:** Usa `exp(x1)`, `ln(x1)` para logaritmo natural, `log(x1)` para base 10, `log(x1, c)` para base `c`.
+    * **Multiplicación:** Usa explícitamente el asterisco `*` (Ejemplo: `2*x1`, **no** `2x1`).
+    * **Exponencial (Euler):** Para $e^{x_1}$, escribe `exp(x1)` o `e^(x1)`.
+    * **Trigonometría:** Puedes usar `sin(x1)`, `cos(x1)`.
+    * **Logaritmos:** Usa `log(x1)` para logaritmo base 10. Para otras bases, usa `log(x1, c)` donde `c` es la base (Ejemplo: `log(x1, 2)` para log base 2, `log(x1, e)` para logaritmo natural). También puedes escribir directamente `ln(x1)` para el logaritmo natural.
+
+    *Ejemplo de función compleja válida de 2 variables: `(x1 - 1)^2 + exp(x2^2)`*
+
+    ---
+    **Métodos disponibles:**
+    * **Gradiente:** Desciende en la dirección opuesta al gradiente. Convergencia garantizada pero puede ser lenta cerca del mínimo.
+    * **Gradiente Conjugado (Fletcher-Reeves):** Mejora el gradiente usando información de la dirección anterior. Se reinicia cada `n` iteraciones (donde `n` es el número de variables) para mantener estabilidad numérica.
+    * **Newton:** Usa el Hessiano para una convergencia cuadrática. Si la dirección obtenida no es de descenso (Hessiano indefinido), se cae automáticamente al gradiente negativo para garantizar progreso.
+
+    ---
+    **Condiciones de Wolfe:**
+    * **c1** controla la condición de suficiente descenso (Armijo). Valor típico: `1e-4`.
+    * **c2** controla la condición de curvatura. Valor típico: `0.9` (métodos de gradiente) o `0.1` (Newton).
+    * Se requiere que `0 < c1 < c2 < 1`.
+    * Si la búsqueda de línea no encuentra un paso válido, se usa un paso fijo pequeño de respaldo (`α = 1e-4`) y se notifica al usuario.
+
+    ---
+    **Gráficos y funciones disponibles:**
+    * **Convergencia:** Norma del gradiente por iteración en escala logarítmica.
+    * **Superficie 3D interactiva** *(solo funciones de 2 variables, modo normal):* Superficie de la función con la trayectoria del algoritmo. Puedes rotar, hacer zoom e interactuar con el gráfico.
+    * **Carrera de algoritmos:** Ejecuta los 3 métodos simultáneamente y compara su convergencia. Incluye ranking automático y análisis del resultado.
+    * **Tabla de iteraciones:** Valor de `f(x)`, norma del gradiente y paso `α` en cada iteración, con descarga en CSV.
+    * **Bitácora para IA:** Genera un reporte copiable con todos los parámetros y resultados para analizar con ChatGPT, Claude o Gemini.
     """)
 
 # --- CASOS DE ESTUDIO ---
